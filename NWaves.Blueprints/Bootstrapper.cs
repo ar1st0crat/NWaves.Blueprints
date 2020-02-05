@@ -1,4 +1,6 @@
 ﻿using Caliburn.Micro;
+using NWaves.Blueprints.Interfaces;
+using NWaves.Blueprints.Services;
 using NWaves.Blueprints.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -22,6 +24,11 @@ namespace NWaves.Blueprints
             _container
                 .Singleton<IWindowManager, WindowManager>()
                 .Singleton<IEventAggregator, EventAggregator>();
+
+            _container
+                .Singleton<IReflectionService, ReflectionService>()
+                .Singleton<IAudioGraphBuilderService, AudioGraphBuilderService>()
+                .Singleton<IAudioService, AudioService>();
 
             _container
                .PerRequest<MainViewModel>()

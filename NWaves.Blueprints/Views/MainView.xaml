@@ -75,7 +75,7 @@
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Name}" />
-                                    <TextBox Width="50" />
+                                    <TextBox Width="50" Text="{Binding Value}" />
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

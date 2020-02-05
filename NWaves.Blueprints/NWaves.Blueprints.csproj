@@ -86,9 +86,14 @@
     <Compile Include="Behaviors\TrackableMouseBehavior.cs" />
     <Compile Include="Bootstrapper.cs" />
     <Compile Include="Converters\FilterNodeConverter.cs" />
+    <Compile Include="Interfaces\IAudioService.cs" />
+    <Compile Include="Interfaces\IReflectionService.cs" />
     <Compile Include="Models\FilterNode.cs" />
+    <Compile Include="Services\AudioGraphBuilderService.cs" />
+    <Compile Include="Interfaces\IAudioGraphBuilderService.cs" />
+    <Compile Include="Services\ReflectionService.cs" />
     <Compile Include="ViewModels\ParameterViewModel.cs" />
-    <Compile Include="Services\AudioProcessor.cs" />
+    <Compile Include="Services\AudioService.cs" />
     <Compile Include="Behaviors\BindableSelectedItemBehavior.cs" />
     <Compile Include="ViewModels\FilterNodeViewModel.cs" />
     <Compile Include="ViewModels\FiltersViewModel.cs" />

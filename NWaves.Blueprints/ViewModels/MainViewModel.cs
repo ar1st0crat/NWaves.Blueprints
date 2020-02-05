@@ -1,10 +1,9 @@
 ﻿using Caliburn.Micro;
 using Microsoft.Win32;
-using NAudio.Wave;
 using NetworkModel;
-using NWaves.Blueprints.Services;
+using NWaves.Blueprints.Interfaces;
+using NWaves.Blueprints.Models;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 
@@ -13,6 +12,8 @@ namespace NWaves.Blueprints.ViewModels
     public class MainViewModel : Conductor<object>
     {
         private readonly IWindowManager _windowManager;
+        private readonly IReflectionService _reflectionService;
+        private IAudioService _audioService;
 
         private NetworkViewModel _network = new NetworkViewModel();
         public NetworkViewModel Network
@@ -31,9 +32,13 @@ namespace NWaves.Blueprints.ViewModels
         public int MouseY { get; set; }
 
 
-        public MainViewModel(IWindowManager windowManager)
+        public MainViewModel(IWindowManager windowManager,
+                             IReflectionService reflectionService,
+                             IAudioService audioService)
         {
             _windowManager = windowManager;
+            _reflectionService = reflectionService;
+            _audioService = audioService;
         }
 
 
@@ -41,9 +46,9 @@ namespace NWaves.Blueprints.ViewModels
 
         public NodeViewModel CreateNode()
         {
-            var filtersViewModel = new FiltersViewModel();
+            var filtersViewModel = IoC.Get<FiltersViewModel>();
 
-            bool? result = _windowManager.ShowDialog(filtersViewModel);
+            var result = _windowManager.ShowDialog(filtersViewModel);
 
             if (result == false)
             {
@@ -51,13 +56,13 @@ namespace NWaves.Blueprints.ViewModels
             }
 
             var type = filtersViewModel.SelectedFilter.FilterType;
-            var info = type.GetConstructors()[0];
-
+            
             var filter = new FilterNodeViewModel
             {
                 FilterType = type,
-                Parameters = new ObservableCollection<ParameterViewModel>(
-                    info.GetParameters().Select(p => new ParameterViewModel { Name = p.Name, Value = 0 }))
+                Parameters = _reflectionService.FilterParameters(type)
+                                               .Select(name => new ParameterViewModel { Name = name, Value = 0 })
+                                               .ToList()
             };
             
             var node = new NodeViewModel(filter.FilterType.Name)
@@ -110,20 +115,27 @@ namespace NWaves.Blueprints.ViewModels
                 Filter = "All Supported Files (*.wav;*.mp3)|*.wav;*.mp3|All Files (*.*)|*.*"
             };
 
-            bool? result = openFileDialog.ShowDialog();
+            var result = openFileDialog.ShowDialog();
 
-            if (result.HasValue && result.Value)
+            if (result == true)
             {
-                var selectedFile = openFileDialog.FileName;
-                var reader = new AudioFileReader(selectedFile);
-                var equalizer = new AudioProcessor(reader, FilterNodes[0].FilterType);
-                var player = new WaveOutEvent();
-                player.Init(equalizer);
-                player.Play();
+                _audioService.Load(openFileDialog.FileName);
 
-                //player?.Dispose();
-                //reader?.Dispose();
+                UpdateAudioGraph();
+
+                _audioService.Play();
             }
+        }
+
+        public void UpdateAudioGraph()
+        {
+            var filters = FilterNodes.Select(f => new FilterNode
+            {
+                FilterType = f.FilterType,
+                Parameters = f.Parameters.Select(p => p.Value).ToArray()
+            });
+
+            _audioService?.Update(filters);
         }
 
         #region dragging connections
@@ -166,6 +178,9 @@ namespace NWaves.Blueprints.ViewModels
             }
 
             newConnection.DestConnector = connectorDraggedOver;
+
+            var node = FilterNodes.First(f => f.NetworkNode == connectorDraggedOver.ParentNode);
+            //node.Connected[]
         }
 
         #endregion

@@ -11,8 +11,8 @@ namespace NWaves.Blueprints.Behaviors
 
         public double MouseY
         {
-            get { return (double)GetValue(MouseYProperty); }
-            set { SetValue(MouseYProperty, value); }
+            get => (double)GetValue(MouseYProperty);
+            set => SetValue(MouseYProperty, value);
         }
 
         public static readonly DependencyProperty MouseXProperty = DependencyProperty.Register(
@@ -20,8 +20,8 @@ namespace NWaves.Blueprints.Behaviors
 
         public double MouseX
         {
-            get { return (double)GetValue(MouseXProperty); }
-            set { SetValue(MouseXProperty, value); }
+            get => (double)GetValue(MouseXProperty);
+            set => SetValue(MouseXProperty, value);
         }
 
         protected override void OnAttached()
