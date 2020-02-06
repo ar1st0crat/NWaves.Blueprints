@@ -108,6 +108,8 @@ namespace NWaves.Blueprints.ViewModels
         #endregion
 
 
+        #region playback
+
         public void Play()
         {
             var openFileDialog = new OpenFileDialog
@@ -127,6 +129,10 @@ namespace NWaves.Blueprints.ViewModels
             }
         }
 
+        public void Pause() => _audioService.Pause();
+
+        public void Stop() => _audioService.Stop();
+
         public void UpdateAudioGraph()
         {
             var filters = FilterNodes.Select(f => new FilterNode
@@ -137,6 +143,9 @@ namespace NWaves.Blueprints.ViewModels
 
             _audioService?.Update(filters);
         }
+
+        #endregion
+
 
         #region dragging connections
 
