@@ -31,6 +31,12 @@ namespace NWaves.Blueprints.ViewModels
 
         public void OK()
         {
+            if (SelectedFilter == null)
+            {
+                TryClose(false);
+                return;
+            }
+
             if (SelectedFilter.FilterType.IsAbstract)
             {
                 MessageBox.Show($"The class {SelectedFilter.FilterType.FullName} is abstract!");

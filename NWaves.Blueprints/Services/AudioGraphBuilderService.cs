@@ -9,46 +9,137 @@ namespace NWaves.Blueprints.Services
 {
     public class AudioGraphBuilderService : IAudioGraphBuilderService
     {
-        public Func<float, float> Build(IEnumerable<FilterNode> nodes)
+        /// <summary>
+        /// Building filter for entire audio graph involves following steps:
+        /// 
+        /// 1) build chains of connected filters
+        /// 2) add all chains
+        /// 
+        /// </summary>
+        /// <param name="nodes"></param>
+        /// <returns></returns>
+        public IOnlineFilter Build(IEnumerable<FilterNode> nodes)
         {
-            Func<float, float> chain = x => x;
+            var nodeArray = nodes.ToArray();
+
+            // find chains of filters in the entire network:
+            
+            var chains = new List<List<FilterNode>>();
+
+            HashSet<int> indices = new HashSet<int>();
+
+            var nodeCount = nodeArray.Length;
+
+            while (indices.Count < nodeCount)
+            {
+                var chain = new List<FilterNode>();
+
+                var i = 0;
+                for (; i < nodeCount; i++)
+                {
+                    if (!indices.Contains(i)) break;
+                }
+
+                var node = nodeArray[i];
+
+                var nextNode = node;
+                while (nextNode.Nodes != null)
+                {
+                    nextNode = nextNode.Nodes[0];
+                    chain.Add(nextNode);
+                    indices.Add(Array.IndexOf(nodeArray, nextNode));
+                }
+
+                var prevNode = node;
+                while (prevNode != null)
+                {
+                    chain.Add(prevNode);
+                    indices.Add(Array.IndexOf(nodeArray, prevNode));
+                    prevNode = nodes.FirstOrDefault(n => n.Nodes != null && n.Nodes[0] == prevNode);
+                }
+
+                chains.Add(chain);
+            }
+
+            // compose chains into one filter:
+
+            if (chains.Any())
+            {
+                var funcs = chains.Select(filters => BuildChain(filters)).ToArray();
+
+                return new CompositeFilter(x => funcs.Sum(f => f(x)));
+            }
+            else
+            {
+                return new CompositeFilter(x => x);
+            }
+        }
+
+        private static Func<float, float> BuildChain(IEnumerable<FilterNode> nodes)
+        {
+            Func<float, float> chainFunc = null;
 
             foreach (var node in nodes)
             {
-                chain = Add(chain, CreateFilter(node));
+                chainFunc = AddFilterToChain(chainFunc, CreateFilter(node));
             }
 
-            return chain;
+            return chainFunc;
         }
 
-        private static Func<float, float> Add(Func<float, float> func, IOnlineFilter filter)
+        private static Func<float, float> AddFilterToChain(Func<float, float> func, IOnlineFilter filter)
         {
-            return x => filter.Process(func(x));
+            if (func == null)
+            {
+                return x => filter.Process(x);
+            }
+            else
+            {
+                return x => filter.Process(func(x));
+            }
         }
 
         private static IOnlineFilter CreateFilter(FilterNode node)
         {
             var ctor = node.FilterType.GetConstructors()[0];
-            var paramTypes = ctor.GetParameters().Select(p => p.ParameterType).ToArray();
-            var parameters = new object[paramTypes.Length];
 
-            for (var i = 0; i < node.Parameters.Length; i++)
+            var parameters = 
+                node.Parameters
+                    .Where(p => p.Name != "Wet" && p.Name != "Dry")
+                    .Select(parameter =>
+                    {
+                        if (typeof(IEnumerable<float>).IsAssignableFrom(parameter.Type))
+                        {
+                            return parameter.Value
+                                            .ToString()
+                                            .Split()
+                                            .Select(e => float.Parse(e))
+                                            .ToArray();
+                        }
+                        else
+                        {
+                            return Convert.ChangeType(parameter.Value, parameter.Type);
+                        }
+                    });
+
+            var filter = (IOnlineFilter)ctor.Invoke(parameters.ToArray());
+
+
+            // properties Wet and Dry:
+
+            if (node.Parameters.Any(p => p.Name == "Wet"))
             {
-                if (typeof(IEnumerable<float>).IsAssignableFrom(paramTypes[i]))
-                {
-                    parameters[i] = node.Parameters[i]
-                                     .ToString()
-                                     .Split()
-                                     .Select(e => float.Parse(e))
-                                     .ToArray();
-                }
-                else
-                {
-                    parameters[i] = Convert.ChangeType(node.Parameters[i], paramTypes[i]);
-                }
+                var propWet = node.FilterType.GetProperty("Wet");
+                var propDry = node.FilterType.GetProperty("Dry");
+
+                var valueWet = node.Parameters.First(p => p.Name == "Wet").Value;
+                var valueDry = node.Parameters.First(p => p.Name == "Dry").Value;
+
+                propWet.SetValue(filter, Convert.ChangeType(valueWet, typeof(float)));
+                propDry.SetValue(filter, Convert.ChangeType(valueDry, typeof(float)));
             }
 
-            return (IOnlineFilter)ctor.Invoke(parameters);
+            return filter;
         }
     }
 }

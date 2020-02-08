@@ -86,9 +86,11 @@
     <Compile Include="Behaviors\TrackableMouseBehavior.cs" />
     <Compile Include="Bootstrapper.cs" />
     <Compile Include="Converters\FilterNodeConverter.cs" />
+    <Compile Include="Models\CompositeFilter.cs" />
     <Compile Include="Interfaces\IAudioService.cs" />
     <Compile Include="Interfaces\IReflectionService.cs" />
     <Compile Include="Models\FilterNode.cs" />
+    <Compile Include="Models\FilterParameter.cs" />
     <Compile Include="Services\AudioGraphBuilderService.cs" />
     <Compile Include="Interfaces\IAudioGraphBuilderService.cs" />
     <Compile Include="Services\ReflectionService.cs" />

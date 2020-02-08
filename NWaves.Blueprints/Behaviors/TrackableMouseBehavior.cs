@@ -6,22 +6,13 @@ namespace NWaves.Blueprints.Behaviors
 {
     public class TrackableMouseBehavior : Behavior<FrameworkElement>
     {
-        public static readonly DependencyProperty MouseYProperty = DependencyProperty.Register(
-            "MouseY", typeof(double), typeof(TrackableMouseBehavior), new PropertyMetadata(default(double)));
+        public static readonly DependencyProperty MousePosProperty = DependencyProperty.Register(
+            "MousePos", typeof(Point), typeof(TrackableMouseBehavior), new PropertyMetadata(null));
 
-        public double MouseY
+        public Point MousePos
         {
-            get => (double)GetValue(MouseYProperty);
-            set => SetValue(MouseYProperty, value);
-        }
-
-        public static readonly DependencyProperty MouseXProperty = DependencyProperty.Register(
-            "MouseX", typeof(double), typeof(TrackableMouseBehavior), new PropertyMetadata(default(double)));
-
-        public double MouseX
-        {
-            get => (double)GetValue(MouseXProperty);
-            set => SetValue(MouseXProperty, value);
+            get => (Point)GetValue(MousePosProperty);
+            set => SetValue(MousePosProperty, value);
         }
 
         protected override void OnAttached()
@@ -31,9 +22,7 @@ namespace NWaves.Blueprints.Behaviors
 
         private void AssociatedObjectOnMouseMove(object sender, MouseEventArgs mouseEventArgs)
         {
-            var pos = mouseEventArgs.GetPosition(AssociatedObject);
-            MouseX = pos.X - 10;
-            MouseY = pos.Y - 10;
+            MousePos = mouseEventArgs.GetPosition(AssociatedObject);
         }
 
         protected override void OnDetaching()

@@ -10,7 +10,7 @@
         Title="Online Filters" Height="480" Width="500">
 
     <StackPanel Orientation="Vertical">
-        <TreeView x:Name="Filters" Height="370">
+        <TreeView x:Name="Filters" Height="350" Margin="10">
             <i:Interaction.Behaviors>
                 <behavior:BindableSelectedItemBehavior SelectedItem="{Binding SelectedFilter, Mode=TwoWay}" />
             </i:Interaction.Behaviors>
@@ -23,6 +23,6 @@
         <Button x:Name="OK"
                 Content="OK"
                 Width="100" Height="40"
-                Margin="20" />
+                Margin="15" />
     </StackPanel>
 </Window>

@@ -7,6 +7,6 @@ namespace NWaves.Blueprints.Models
     {
         public Type FilterType { get; set; }
         public List<FilterNode> Nodes { get; set; }
-        public object[] Parameters { get; set; }
+        public FilterParameter[] Parameters { get; set; }
     }
 }

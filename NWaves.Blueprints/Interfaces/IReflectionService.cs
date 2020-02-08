@@ -7,6 +7,6 @@ namespace NWaves.Blueprints.Interfaces
     public interface IReflectionService
     {
         List<FilterNode> BuildFiltersTree();
-        List<string> FilterParameters(Type type);
+        FilterParameter[] GetFilterParameters(Type type);
     }
 }

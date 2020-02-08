@@ -16,28 +16,39 @@ namespace NWaves.Blueprints.Views
             InitializeComponent();
         }
 
+        /*
+            Unfortunately, this MVVM-friendly stuff didn't work with NetworkView:  ((
+    
+            cal:Message.Attach="[Event ConnectionDragStarted] = [Action ConnectionDragStarted($eventArgs)];
+                                [Event ConnectionDragging] = [Action ConnectionDragging($eventArgs)];
+                                [Event ConnectionDragCompleted] = [Action ConnectionDragCompleted($eventArgs)]"
+        */
+
         private void NetworkControl_ConnectionDragStarted(object sender, ConnectionDragStartedEventArgs e)
         {
             var draggedOutConnector = (ConnectorViewModel)e.ConnectorDraggedOut;
-            var curDragPoint = Mouse.GetPosition(networkControl);
+            var dragPoint = Mouse.GetPosition(networkControl);
 
-            e.Connection = (DataContext as MainViewModel).ConnectionDragStarted(draggedOutConnector, curDragPoint);
+            var context = DataContext as MainViewModel;
+            e.Connection = context.ConnectionDragStarted(draggedOutConnector, dragPoint);
         }
 
         private void NetworkControl_ConnectionDragging(object sender, ConnectionDraggingEventArgs e)
         {
-            var curDragPoint = Mouse.GetPosition(networkControl);
+            var dragPoint = Mouse.GetPosition(networkControl);
             var connection = (ConnectionViewModel)e.Connection;
 
-            (DataContext as MainViewModel).ConnectionDragging(connection, curDragPoint);
+            var context = DataContext as MainViewModel;
+            context.ConnectionDragging(connection, dragPoint);
         }
 
         private void NetworkControl_ConnectionDragCompleted(object sender, ConnectionDragCompletedEventArgs e)
         {
             var connectorDraggedOver = (ConnectorViewModel)e.ConnectorDraggedOver;
             var newConnection = (ConnectionViewModel)e.Connection;
-            
-            (DataContext as MainViewModel).ConnectionDragCompleted(newConnection, connectorDraggedOver);
+
+            var context = DataContext as MainViewModel;
+            context.ConnectionDragCompleted(newConnection, connectorDraggedOver);
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using NetworkModel;
 using NWaves.Blueprints.Interfaces;
 using NWaves.Blueprints.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -15,6 +16,8 @@ namespace NWaves.Blueprints.ViewModels
         private readonly IReflectionService _reflectionService;
         private IAudioService _audioService;
 
+        private List<FilterNode> _filterNodes = new List<FilterNode>();
+
         private NetworkViewModel _network = new NetworkViewModel();
         public NetworkViewModel Network
         {
@@ -26,10 +29,11 @@ namespace NWaves.Blueprints.ViewModels
             }
         }
 
-        public List<FilterNodeViewModel> FilterNodes { get; set; } = new List<FilterNodeViewModel>();
+        public List<FilterNodeViewModel> FilterNodeViews { get; set; } = new List<FilterNodeViewModel>();
 
-        public int MouseX { get; set; }
-        public int MouseY { get; set; }
+        public Point MousePosition { get; set; }
+
+        private bool _isPaused;
 
 
         public MainViewModel(IWindowManager windowManager,
@@ -56,28 +60,38 @@ namespace NWaves.Blueprints.ViewModels
             }
 
             var type = filtersViewModel.SelectedFilter.FilterType;
-            
-            var filter = new FilterNodeViewModel
+
+            var node = new NodeViewModel(type.Name)
+            {
+                X = MousePosition.X,
+                Y = MousePosition.Y
+            };
+            node.Connectors.Add(new ConnectorViewModel());
+            node.Connectors.Add(new ConnectorViewModel());
+            node.Connectors.Add(new ConnectorViewModel());
+            node.Connectors.Add(new ConnectorViewModel());
+
+            var filterViewModel = new FilterNodeViewModel
+            {
+                NetworkNode = node,
+                Parameters = new BindableCollection<ParameterViewModel>(
+                    _reflectionService.GetFilterParameters(type)
+                                      .Select(p => new ParameterViewModel
+                                      {
+                                          Name = p.Name,
+                                          Value = p.Value == DBNull.Value ? 0 : p.Value,
+                                          Type = p.Type
+                                      }))
+            };
+
+            var filter = new FilterNode
             {
                 FilterType = type,
-                Parameters = _reflectionService.FilterParameters(type)
-                                               .Select(name => new ParameterViewModel { Name = name, Value = 0 })
-                                               .ToList()
+                Parameters = _reflectionService.GetFilterParameters(type)
             };
-            
-            var node = new NodeViewModel(filter.FilterType.Name)
-            {
-                X = MouseX,
-                Y = MouseY
-            };
-            node.Connectors.Add(new ConnectorViewModel());
-            node.Connectors.Add(new ConnectorViewModel());
-            node.Connectors.Add(new ConnectorViewModel());
-            node.Connectors.Add(new ConnectorViewModel());
 
-            filter.NetworkNode = node;
-
-            FilterNodes.Add(filter);
+            FilterNodeViews.Add(filterViewModel);
+            _filterNodes.Add(filter);
             Network.Nodes.Add(node);
 
             return node;
@@ -101,17 +115,44 @@ namespace NWaves.Blueprints.ViewModels
             Network.Connections.RemoveRange(node.AttachedConnections);
             Network.Nodes.Remove(node);
 
-            var filterNode = FilterNodes.First(f => f.NetworkNode == node);
-            FilterNodes.Remove(filterNode);
+            for (var i = 0; i < _filterNodes.Count; i++)
+            {
+                if (FilterNodeViews[i].NetworkNode == node)
+                {
+                    RemoveConnections(_filterNodes[i]);
+
+                    _filterNodes.RemoveAt(i);
+                    FilterNodeViews.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+
+        private void RemoveConnections(FilterNode filter)
+        {
+            foreach (var filterNode in _filterNodes)
+            {
+                if (filterNode.Nodes != null && filterNode.Nodes.Any(f => f == filter))
+                {
+                    filterNode.Nodes = null;
+                }
+            }
         }
 
         #endregion
 
 
-        #region playback
+        #region playback and audio graph
 
         public void Play()
         {
+            if (_isPaused)
+            {
+                _audioService.Play();
+                _isPaused = false;
+                return;
+            }
+
             var openFileDialog = new OpenFileDialog
             {
                 Filter = "All Supported Files (*.wav;*.mp3)|*.wav;*.mp3|All Files (*.*)|*.*"
@@ -129,37 +170,72 @@ namespace NWaves.Blueprints.ViewModels
             }
         }
 
-        public void Pause() => _audioService.Pause();
+        public void Pause()
+        {
+            _audioService.Pause();
+            _isPaused = true;
+        }
 
-        public void Stop() => _audioService.Stop();
+        public void Stop()
+        {
+            _audioService.Stop();
+        }
 
         public void UpdateAudioGraph()
         {
-            var filters = FilterNodes.Select(f => new FilterNode
+            if (_audioService.WaveFormat != null)
             {
-                FilterType = f.FilterType,
-                Parameters = f.Parameters.Select(p => p.Value).ToArray()
-            });
+                foreach (var node in FilterNodeViews)
+                {
+                    var sampleRateParameter = node.Parameters.FirstOrDefault(p => p.Name == "samplingRate");
 
-            _audioService?.Update(filters);
+                    if (sampleRateParameter != null)
+                    {
+                        sampleRateParameter.Value = _audioService.WaveFormat.SampleRate;
+                    }
+                }
+            }
+
+            // update parameter values in filter nodes from view models:
+
+            for (var i = 0; i < _filterNodes.Count; i++)
+            {
+                for (var j = 0; j < _filterNodes[i].Parameters.Length; j++)
+                {
+                    _filterNodes[i].Parameters[j].Value = FilterNodeViews[i].Parameters[j].Value;
+                }
+            }
+
+            _audioService.Update(_filterNodes);
         }
 
         #endregion
 
 
-        #region dragging connections
+        #region dragging connections in NetworkView
 
-        public ConnectionViewModel ConnectionDragStarted(ConnectorViewModel draggedOutConnector, Point curDragPoint)
+        public ConnectionViewModel ConnectionDragStarted(ConnectorViewModel draggedOutConnector, Point dragPoint)
         {
             if (draggedOutConnector.AttachedConnection != null)
             {
+                var destNode = draggedOutConnector.AttachedConnection.DestConnector.ParentNode;
+
+                for (var i = 0; i < FilterNodeViews.Count; i++)
+                {
+                    if (FilterNodeViews[i].NetworkNode == destNode)
+                    {
+                        RemoveConnections(_filterNodes[i]);
+                        break;
+                    }
+                }
+
                 Network.Connections.Remove(draggedOutConnector.AttachedConnection);
             }
 
             var connection = new ConnectionViewModel
             {
                 SourceConnector = draggedOutConnector,
-                DestConnectorHotspot = curDragPoint
+                DestConnectorHotspot = dragPoint
             };
 
             Network.Connections.Add(connection);
@@ -167,9 +243,9 @@ namespace NWaves.Blueprints.ViewModels
             return connection;
         }
 
-        public void ConnectionDragging(ConnectionViewModel connection, Point curDragPoint)
+        public void ConnectionDragging(ConnectionViewModel connection, Point dragPoint)
         {
-            connection.DestConnectorHotspot = curDragPoint;
+            connection.DestConnectorHotspot = dragPoint;
         }
 
         public void ConnectionDragCompleted(ConnectionViewModel newConnection, ConnectorViewModel connectorDraggedOver)
@@ -183,13 +259,51 @@ namespace NWaves.Blueprints.ViewModels
             var existingConnection = connectorDraggedOver.AttachedConnection;
             if (existingConnection != null)
             {
+                var destNode = existingConnection.DestConnector.ParentNode;
+
+                for (var i = 0; i < FilterNodeViews.Count; i++)
+                {
+                    if (FilterNodeViews[i].NetworkNode == destNode)
+                    {
+                        RemoveConnections(_filterNodes[i]);
+                        break;
+                    }
+                }
+
                 Network.Connections.Remove(existingConnection);
             }
 
             newConnection.DestConnector = connectorDraggedOver;
 
-            var node = FilterNodes.First(f => f.NetworkNode == connectorDraggedOver.ParentNode);
-            //node.Connected[]
+
+            // correctly connect filter nodes (underlying models)
+
+            var srcIndex = 0;
+            var destIndex = 0;
+
+            for (var i = 0; i < FilterNodeViews.Count; i++)
+            {
+                if (FilterNodeViews[i].NetworkNode == newConnection.SourceConnector.ParentNode)
+                {
+                    srcIndex = i;
+                    break;
+                }
+            }
+            for (var i = 0; i < FilterNodeViews.Count; i++)
+            {
+                if (FilterNodeViews[i].NetworkNode == connectorDraggedOver.ParentNode)
+                {
+                    destIndex = i;
+                    break;
+                }
+            }
+
+            if (_filterNodes[srcIndex].Nodes == null)
+            {
+                _filterNodes[srcIndex].Nodes = new List<FilterNode>();
+            }
+
+            _filterNodes[srcIndex].Nodes.Add(_filterNodes[destIndex]);
         }
 
         #endregion

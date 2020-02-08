@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NAudio.Wave;
 using NWaves.Blueprints.Interfaces;
 using NWaves.Blueprints.Models;
+using NWaves.Filters.Base;
 
 namespace NWaves.Blueprints.Services
 {
@@ -17,9 +17,9 @@ namespace NWaves.Blueprints.Services
         /// <summary>
         /// There may be several channels
         /// </summary>
-        private Func<float, float>[] _processFuncs;
+        private IOnlineFilter[] _filters;
 
-        public WaveFormat WaveFormat => _reader.WaveFormat;
+        public WaveFormat WaveFormat => _reader?.WaveFormat;
 
         public AudioService(IAudioGraphBuilderService audioGraphBuilder)
         {
@@ -39,7 +39,12 @@ namespace NWaves.Blueprints.Services
 
         public void Update(IEnumerable<FilterNode> filters)
         {
-            _processFuncs = Enumerable
+            if (_reader == null)
+            {
+                return;
+            }
+
+            _filters = Enumerable
                 .Range(0, _reader.WaveFormat.Channels)
                 .Select(_ => _audioGraphBuilder.Build(filters))
                 .ToArray();
@@ -55,7 +60,7 @@ namespace NWaves.Blueprints.Services
             {
                 for (var i = 0; i < channelCount; i++, n++)
                 {
-                    buffer[offset + n] = _processFuncs[i](buffer[offset + n]);
+                    buffer[offset + n] = _filters[i].Process(buffer[offset + n]);
                 }
             }
 

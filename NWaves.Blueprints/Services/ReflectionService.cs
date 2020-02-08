@@ -67,13 +67,34 @@ namespace NWaves.Blueprints.Services
             }
         }
 
-        public List<string> FilterParameters(Type type)
+        public FilterParameter[] GetFilterParameters(Type type)
         {
+            // parameters are taken from:
+
+            // 1) constructor (currently, just take the first constructor)
+             
             var info = type.GetConstructors()[0];
 
-            return info.GetParameters()
-                       .Select(p => p.Name)
-                       .ToList();
+            var pars = info.GetParameters()
+                           .Select(p => new FilterParameter
+                           {
+                               Name = p.Name,
+                               Type = p.ParameterType,
+                               Value = p.RawDefaultValue
+                           });
+            
+            // 2) properties Wet and Dry (if they exist)
+
+            var props = type.GetProperties()
+                            .Where(p => p.Name == "Wet" || p.Name == "Dry")
+                            .Select(p => new FilterParameter
+                            {
+                                Name = p.Name,
+                                Type = p.PropertyType,
+                                Value = p.Name == "Wet" ? 1 : 0
+                            });
+
+            return pars.Concat(props).ToArray();
         }
     }
 }

@@ -10,7 +10,7 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:cal="http://www.caliburnproject.org"
         mc:Ignorable="d"
-        Title="NWaves Blueprints" Height="450" Width="800">
+        Title="NWaves Blueprints" Height="550" Width="800">
 
     <Window.Background>
         <ImageBrush ImageSource="../Assets/bg.jpg"
@@ -115,11 +115,12 @@
                              Background="Black"
                              Foreground="Azure"
                              BorderThickness="2"
-                             BorderBrush="Transparent">
+                             BorderBrush="Transparent"
+                             Padding="0,0,0,5">
                         <ListBox.DataContext>
                             <MultiBinding Converter="{StaticResource FilterNodeConverter}">
                                 <Binding />
-                                <Binding Path="DataContext.FilterNodes" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}" />
+                                <Binding Path="DataContext.FilterNodeViews" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}" />
                             </MultiBinding>
                         </ListBox.DataContext>
                         <ListBox.ItemTemplate>
@@ -130,7 +131,7 @@
                                         <ColumnDefinition Width="52" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding Name}" Grid.Column="0" />
-                                    <TextBox Text="{Binding Value}" Grid.Column="1"
+                                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1"
                                              Background="#222222"
                                              Foreground="White"
                                              BorderBrush="White" />
@@ -155,11 +156,6 @@
                   Y2="{Binding DestConnectorHotspot.Y}" />
         </DataTemplate>
     </Window.Resources>
-
-    <i:Interaction.Behaviors>
-        <behavior:TrackableMouseBehavior MouseX="{Binding MouseX, Mode=OneWayToSource}"
-                                         MouseY="{Binding MouseY, Mode=OneWayToSource}" />
-    </i:Interaction.Behaviors>
 
     <Window.ContextMenu>
         <ContextMenu>
@@ -189,9 +185,21 @@
             x:Name="networkControl"
             NodesSource="{Binding Network.Nodes}"
             ConnectionsSource="{Binding Network.Connections}"
+            ConnectionDragCompleted="NetworkControl_ConnectionDragCompleted"
             ConnectionDragStarted="NetworkControl_ConnectionDragStarted"
             ConnectionDragging="NetworkControl_ConnectionDragging"
-            ConnectionDragCompleted="NetworkControl_ConnectionDragCompleted" 
-            Background="Transparent" />
+            Background="Transparent">
+            <i:Interaction.Behaviors>
+                <behavior:TrackableMouseBehavior MousePos="{Binding MousePosition, Mode=TwoWay}" />
+            </i:Interaction.Behaviors>
+        </NetworkUI:NetworkView>
     </Grid>
 </Window>
+
+<!--
+Unfortunately, this MVVM-friendly stuff didn't work with NetworkView: ((
+    
+cal:Message.Attach="[Event ConnectionDragStarted] = [Action ConnectionDragStarted($eventArgs)];
+                    [Event ConnectionDragging] = [Action ConnectionDragging($eventArgs)];
+                    [Event ConnectionDragCompleted] = [Action ConnectionDragCompleted($eventArgs)]"
+-->

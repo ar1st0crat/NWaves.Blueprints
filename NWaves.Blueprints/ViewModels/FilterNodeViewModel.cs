@@ -1,13 +1,11 @@
-﻿using NetworkModel;
-using System;
-using System.Collections.Generic;
+﻿using Caliburn.Micro;
+using NetworkModel;
 
 namespace NWaves.Blueprints.ViewModels
 {
     public class FilterNodeViewModel
     {
-        public Type FilterType { get; set; }
-        public List<ParameterViewModel> Parameters { get; set; }
         public NodeViewModel NetworkNode { get; set; }
+        public BindableCollection<ParameterViewModel> Parameters { get; set; }
     }
 }

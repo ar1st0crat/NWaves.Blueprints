@@ -1,11 +1,11 @@
 ﻿using NWaves.Blueprints.Models;
-using System;
+using NWaves.Filters.Base;
 using System.Collections.Generic;
 
 namespace NWaves.Blueprints.Interfaces
 {
     public interface IAudioGraphBuilderService
     {
-        Func<float, float> Build(IEnumerable<FilterNode> nodes);
+        IOnlineFilter Build(IEnumerable<FilterNode> nodes);
     }
 }
