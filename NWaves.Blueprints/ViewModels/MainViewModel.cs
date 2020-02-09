@@ -14,7 +14,8 @@ namespace NWaves.Blueprints.ViewModels
     {
         private readonly IWindowManager _windowManager;
         private readonly IReflectionService _reflectionService;
-        private IAudioService _audioService;
+        private readonly ISerializationService _serializationService;
+        private readonly IAudioService _audioService;
 
         private List<FilterNode> _filterNodes = new List<FilterNode>();
 
@@ -38,10 +39,12 @@ namespace NWaves.Blueprints.ViewModels
 
         public MainViewModel(IWindowManager windowManager,
                              IReflectionService reflectionService,
+                             ISerializationService serializationService,
                              IAudioService audioService)
         {
             _windowManager = windowManager;
             _reflectionService = reflectionService;
+            _serializationService = serializationService;
             _audioService = audioService;
         }
 
@@ -66,8 +69,6 @@ namespace NWaves.Blueprints.ViewModels
                 X = MousePosition.X,
                 Y = MousePosition.Y
             };
-            node.Connectors.Add(new ConnectorViewModel());
-            node.Connectors.Add(new ConnectorViewModel());
             node.Connectors.Add(new ConnectorViewModel());
             node.Connectors.Add(new ConnectorViewModel());
 
@@ -158,16 +159,16 @@ namespace NWaves.Blueprints.ViewModels
                 Filter = "All Supported Files (*.wav;*.mp3)|*.wav;*.mp3|All Files (*.*)|*.*"
             };
 
-            var result = openFileDialog.ShowDialog();
-
-            if (result == true)
+            if (openFileDialog.ShowDialog() != true)
             {
-                _audioService.Load(openFileDialog.FileName);
-
-                UpdateAudioGraph();
-
-                _audioService.Play();
+                return;
             }
+
+            _audioService.Load(openFileDialog.FileName);
+
+            UpdateAudioGraph();
+
+            _audioService.Play();
         }
 
         public void Pause()
@@ -196,8 +197,13 @@ namespace NWaves.Blueprints.ViewModels
                 }
             }
 
-            // update parameter values in filter nodes from view models:
+            UpdateFiltersParameters();
 
+            _audioService.Update(_filterNodes);
+        }
+
+        private void UpdateFiltersParameters()
+        {
             for (var i = 0; i < _filterNodes.Count; i++)
             {
                 for (var j = 0; j < _filterNodes[i].Parameters.Length; j++)
@@ -205,8 +211,108 @@ namespace NWaves.Blueprints.ViewModels
                     _filterNodes[i].Parameters[j].Value = FilterNodeViews[i].Parameters[j].Value;
                 }
             }
+        }
 
-            _audioService.Update(_filterNodes);
+        #endregion
+
+
+        #region serialization
+
+        public void Load()
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "Json Files (*.json)|*.json|All Files (*.*)|*.*"
+            };
+
+            if (openFileDialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            _filterNodes = _serializationService.Deserialize(openFileDialog.FileName);
+
+
+            // update view models and network view:
+
+            Network.Nodes.Clear();
+            Network.Connections.Clear();
+            FilterNodeViews.Clear();
+
+            var PosX = 50;
+            var PosY = 50;
+
+            const int StepX = 180;
+
+            foreach (var filter in _filterNodes)
+            {
+                var type = filter.FilterType;
+
+                var node = new NodeViewModel(type.Name)
+                {
+                    X = PosX,
+                    Y = PosY
+                };
+                
+                PosX += StepX;
+
+                node.Connectors.Add(new ConnectorViewModel());
+                node.Connectors.Add(new ConnectorViewModel());
+
+                var filterViewModel = new FilterNodeViewModel
+                {
+                    NetworkNode = node,
+                    Parameters = new BindableCollection<ParameterViewModel>(
+                                    filter.Parameters
+                                          .Select(p => new ParameterViewModel
+                                          {
+                                              Name = p.Name,
+                                              Value = p.Value ?? 0,
+                                              Type = p.Type
+                                          }))
+                };
+
+                FilterNodeViews.Add(filterViewModel);
+                Network.Nodes.Add(node);
+            }
+
+            // update connections in network view:
+
+            for (var srcIndex = 0; srcIndex < _filterNodes.Count; srcIndex++)
+            {
+                var node = _filterNodes[srcIndex];
+
+                if (node.Nodes == null) continue;
+
+                var destNode = node.Nodes[0];
+                var destIndex = -1;
+
+                while (_filterNodes[++destIndex] != destNode) ;
+
+                Network.Connections.Add(
+                        new ConnectionViewModel
+                        {
+                            SourceConnector = Network.Nodes[srcIndex].Connectors[1],
+                            DestConnector = Network.Nodes[destIndex].Connectors[0]
+                        });
+            }
+        }
+
+        public void Save()
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Json Files (*.json)|*.json|All Files (*.*)|*.*"
+            };
+
+            if (saveFileDialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            UpdateFiltersParameters();
+
+            _serializationService.Serialize(saveFileDialog.FileName, _filterNodes);
         }
 
         #endregion

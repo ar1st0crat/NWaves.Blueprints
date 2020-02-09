@@ -53,6 +53,9 @@
     <Reference Include="NetworkUI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\NetworkView.1.0.0\lib\NetworkUI.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="NWaves, Version=0.9.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\NWaves.0.9.3\lib\netstandard2.0\NWaves.dll</HintPath>
     </Reference>
@@ -86,6 +89,7 @@
     <Compile Include="Behaviors\TrackableMouseBehavior.cs" />
     <Compile Include="Bootstrapper.cs" />
     <Compile Include="Converters\FilterNodeConverter.cs" />
+    <Compile Include="Interfaces\ISerializationService.cs" />
     <Compile Include="Models\CompositeFilter.cs" />
     <Compile Include="Interfaces\IAudioService.cs" />
     <Compile Include="Interfaces\IReflectionService.cs" />
@@ -94,6 +98,7 @@
     <Compile Include="Services\AudioGraphBuilderService.cs" />
     <Compile Include="Interfaces\IAudioGraphBuilderService.cs" />
     <Compile Include="Services\ReflectionService.cs" />
+    <Compile Include="Services\SerializationService.cs" />
     <Compile Include="ViewModels\ParameterViewModel.cs" />
     <Compile Include="Services\AudioService.cs" />
     <Compile Include="Behaviors\BindableSelectedItemBehavior.cs" />

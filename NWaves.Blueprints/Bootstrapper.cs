@@ -27,8 +27,9 @@ namespace NWaves.Blueprints
 
             _container
                 .Singleton<IReflectionService, ReflectionService>()
-                .Singleton<IAudioGraphBuilderService, AudioGraphBuilderService>()
-                .Singleton<IAudioService, AudioService>();
+                .PerRequest<IAudioGraphBuilderService, AudioGraphBuilderService>()
+                .PerRequest<IAudioService, AudioService>()
+                .PerRequest<ISerializationService, SerializationService>();
 
             _container
                .PerRequest<MainViewModel>()
