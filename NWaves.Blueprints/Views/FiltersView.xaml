@@ -7,10 +7,16 @@
         xmlns:behavior="clr-namespace:NWaves.Blueprints.Behaviors"
         xmlns:cal="http://www.caliburnproject.org"
         mc:Ignorable="d"
+        WindowState="Maximized"
         Title="Online Filters" Height="480" Width="500">
 
-    <StackPanel Orientation="Vertical">
-        <TreeView x:Name="Filters" Height="350" Margin="10">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="70" />
+        </Grid.RowDefinitions>
+        
+        <TreeView x:Name="Filters" Margin="5" Grid.Row="0">
             <i:Interaction.Behaviors>
                 <behavior:BindableSelectedItemBehavior SelectedItem="{Binding SelectedFilter, Mode=TwoWay}" />
             </i:Interaction.Behaviors>
@@ -21,8 +27,8 @@
             </TreeView.ItemTemplate>
         </TreeView>
         <Button x:Name="OK"
+                Grid.Row="1"
                 Content="OK"
-                Width="100" Height="40"
-                Margin="15" />
-    </StackPanel>
+                Width="100" Height="40" />
+    </Grid>
 </Window>

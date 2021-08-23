@@ -1,5 +1,6 @@
 ﻿using NWaves.Blueprints.Interfaces;
 using NWaves.Blueprints.Models;
+using NWaves.Effects;
 using NWaves.Filters.Base;
 using System;
 using System.Collections.Generic;
@@ -27,9 +28,7 @@ namespace NWaves.Blueprints.Services
 
             foreach (var tp in types)
             {
-                // at the first level add only "direct implementers" of IOnlineFilter:
-
-                if (tp.BaseType.Name != "Object")
+                if (_nwaves.GetTypes().Count(t => t.BaseType == tp) > 0)
                 {
                     continue;
                 }
@@ -40,31 +39,9 @@ namespace NWaves.Blueprints.Services
                 };
 
                 filters.Add(newNode);
-
-                AddFilterNodes(tp, ref newNode);
             }
 
             return filters;
-        }
-
-        private void AddFilterNodes(Type type, ref FilterNode node)
-        {
-            var types = _nwaves.GetTypes()
-                               .Where(t => t.BaseType == type);
-
-            node.Nodes = new List<FilterNode>();
-
-            foreach (var tp in types)
-            {
-                var newNode = new FilterNode
-                {
-                    FilterType = tp
-                };
-
-                node.Nodes.Add(newNode);
-
-                AddFilterNodes(tp, ref newNode);
-            }
         }
 
         public FilterParameter[] GetFilterParameters(Type type)
@@ -74,6 +51,11 @@ namespace NWaves.Blueprints.Services
             // 1) constructor (currently, just take the first constructor)
              
             var info = type.GetConstructors()[0];
+
+            if (type == typeof(VibratoEffect) || type == typeof(FlangerEffect))     // ver.0.9.5 upd.
+            {
+                info = type.GetConstructors()[1];       // for these filters the 2nd constructor has more primitive types
+            }
 
             var pars = info.GetParameters()
                            .Select(p => new FilterParameter

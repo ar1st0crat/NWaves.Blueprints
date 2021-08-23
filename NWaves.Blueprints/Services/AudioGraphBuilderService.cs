@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using NWaves.Blueprints.Interfaces;
 using NWaves.Blueprints.Models;
+using NWaves.Effects;
 using NWaves.Filters.Base;
 
 namespace NWaves.Blueprints.Services
@@ -101,8 +103,6 @@ namespace NWaves.Blueprints.Services
 
         private static IOnlineFilter CreateFilter(FilterNode node)
         {
-            var ctor = node.FilterType.GetConstructors()[0];
-
             var parameters = 
                 node.Parameters
                     .Where(p => p.Name != "Wet" && p.Name != "Dry")
@@ -113,14 +113,26 @@ namespace NWaves.Blueprints.Services
                             return parameter.Value
                                             .ToString()
                                             .Split()
-                                            .Select(e => float.Parse(e))
+                                            .Select(e => float.Parse(e, CultureInfo.InvariantCulture))
                                             .ToArray();
+                        }
+                        else if (typeof(Enum).IsAssignableFrom(parameter.Type))
+                        {
+                            return Enum.Parse(parameter.Type, parameter.Value.ToString());
                         }
                         else
                         {
-                            return Convert.ChangeType(parameter.Value, parameter.Type);
+                            return Convert.ChangeType(parameter.Value, parameter.Type, CultureInfo.InvariantCulture);
                         }
                     });
+
+            var ctor = node.FilterType.GetConstructors()[0];
+
+            if (node.FilterType == typeof(VibratoEffect) ||
+                node.FilterType == typeof(FlangerEffect))     // ver.0.9.5 upd.
+            {
+                ctor = node.FilterType.GetConstructors()[1];
+            }
 
             var filter = (IOnlineFilter)ctor.Invoke(parameters.ToArray());
 
@@ -135,8 +147,8 @@ namespace NWaves.Blueprints.Services
                 var valueWet = node.Parameters.First(p => p.Name == "Wet").Value;
                 var valueDry = node.Parameters.First(p => p.Name == "Dry").Value;
 
-                propWet.SetValue(filter, Convert.ChangeType(valueWet, typeof(float)));
-                propDry.SetValue(filter, Convert.ChangeType(valueDry, typeof(float)));
+                propWet.SetValue(filter, Convert.ChangeType(valueWet, typeof(float), CultureInfo.InvariantCulture));
+                propDry.SetValue(filter, Convert.ChangeType(valueDry, typeof(float), CultureInfo.InvariantCulture));
             }
 
             return filter;

@@ -10,6 +10,7 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:cal="http://www.caliburnproject.org"
         mc:Ignorable="d"
+        WindowState="Maximized"
         Title="NWaves Blueprints" Height="550" Width="800">
 
     <Window.Background>

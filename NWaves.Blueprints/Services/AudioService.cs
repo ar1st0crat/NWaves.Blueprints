@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using NAudio.Wave;
 using NWaves.Blueprints.Interfaces;
 using NWaves.Blueprints.Models;
@@ -10,14 +9,10 @@ namespace NWaves.Blueprints.Services
     class AudioService : IAudioService
     {
         private readonly IAudioGraphBuilderService _audioGraphBuilder;
+        private IOnlineFilter _filter;
 
         private AudioFileReader _reader;
         private WaveOutEvent _player;
-
-        /// <summary>
-        /// There may be several channels
-        /// </summary>
-        private IOnlineFilter[] _filters;
 
         public WaveFormat WaveFormat => _reader?.WaveFormat;
 
@@ -39,15 +34,19 @@ namespace NWaves.Blueprints.Services
 
         public void Update(IEnumerable<FilterNode> filters)
         {
-            if (_reader == null)
+            if (_reader is null)
             {
                 return;
             }
 
-            _filters = Enumerable
-                .Range(0, _reader.WaveFormat.Channels)
-                .Select(_ => _audioGraphBuilder.Build(filters))
-                .ToArray();
+            if (_reader.WaveFormat.Channels == 1)
+            {
+                _filter = _audioGraphBuilder.Build(filters);
+            }
+            else
+            {
+                _filter = new StereoFilter(_audioGraphBuilder.Build(filters), _audioGraphBuilder.Build(filters));
+            }
         }
 
         public int Read(float[] buffer, int offset, int count)
@@ -60,7 +59,7 @@ namespace NWaves.Blueprints.Services
             {
                 for (var i = 0; i < channelCount; i++, n++)
                 {
-                    buffer[offset + n] = _filters[i].Process(buffer[offset + n]);
+                    buffer[offset + n] = _filter.Process(buffer[offset + n]);
                 }
             }
 
