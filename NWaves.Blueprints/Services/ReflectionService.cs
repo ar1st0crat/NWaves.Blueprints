@@ -52,11 +52,6 @@ namespace NWaves.Blueprints.Services
              
             var info = type.GetConstructors()[0];
 
-            if (type == typeof(VibratoEffect) || type == typeof(FlangerEffect))     // ver.0.9.5 upd.
-            {
-                info = type.GetConstructors()[1];       // for these filters the 2nd constructor has more primitive types
-            }
-
             var pars = info.GetParameters()
                            .Select(p => new FilterParameter
                            {

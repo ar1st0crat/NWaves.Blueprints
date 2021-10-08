@@ -128,14 +128,7 @@ namespace NWaves.Blueprints.Services
 
             var ctor = node.FilterType.GetConstructors()[0];
 
-            if (node.FilterType == typeof(VibratoEffect) ||
-                node.FilterType == typeof(FlangerEffect))     // ver.0.9.5 upd.
-            {
-                ctor = node.FilterType.GetConstructors()[1];
-            }
-
             var filter = (IOnlineFilter)ctor.Invoke(parameters.ToArray());
-
 
             // properties Wet and Dry:
 
